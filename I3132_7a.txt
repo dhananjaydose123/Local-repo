@@ -1,104 +1,160 @@
 /*
------------------ Assignment 7b ----------------------
+Name - Dhananjay Dose
+Roll no.-I3132
+*/
+/*
+Assignment 07(a)
 
-Name : Dhananjay Dose
-Roll No. : I3132
+Problem Statement:-
+				                      Inter process communication in Linux using FIFOS
 
-Problem Statement : 
-Inter-process Communication using Shared Memory using System V. Application to demonstrate:
-Client and Server Programs in which server process creates a shared memory segment
-and writes the message to the shared memory segment. 
-Client process reads the message from the shared memory segment and displays it to the screen.
+A. FIFOS: Full duplex communication between two independent processes. First process accepts sentences and writes on one pipe to be read by second process and second process counts number of characters, number of words and number of lines in accepted sentences, writes this output in a text file and writes the contents of the file on second pipe to be read by first process and displays on standard output.
 
 */
 
+/*First code - file name 'firstp'*/
+
+
 #include<stdio.h>
-#include<stdlib.h>
 #include<unistd.h>
-#include<sys/shm.h>
 #include<sys/stat.h>
+#include<fcntl.h>
+#define Max_Buff 1024
 
-#define SZ 4096
-
-int main(){
-	
-	int shm_id;
-	//key_t mykey;
-	int *shm_ptr;
-	int data,ret_val;
-	int read_data;
-	int pid;
-	//mykey=ftok(".",'A');
+int main()
+{
+	int fd1,fd2,c=0;
+	char * myfifo1="myfifo1";
+	char * myfifo2="myfifo2";
 	
 	
-	shm_id=shmget( IPC_PRIVATE , SZ , IPC_CREAT | 0666 );
-	if(shm_id<0){
-		printf("\n ERROR at addressing ,memory\n");
+	char buff[Max_Buff];
+	char str;
+	int res;
+	
+	res=mkfifo(myfifo1,0777);
+	if(res==-1)
+	{
+		printf("\nPipe 1 not created");
+		return 0;
 	}
-	else{
-		printf("Shared memory is created\n");
-		printf("shared memory id  %d\n",shm_id);
-		
-		shm_ptr=(int*) shmat(shm_id,NULL,0);
-			if((int) shm_ptr!=-1){
-				printf("\nSHARED MEMORY IS ATTACHED TO \t%d\n",shm_ptr);
-			}//if ptr
-			printf("\nENTER THE DATA\n");
-			scanf("%d",&data);
-			*shm_ptr = data;
-			//ret_val =shmdt((void *)shm_ptr);
-			/*if(ret_val==0){
-				printf("\n shared memory is sucessfully detached\n");
-			}
-			else{
-				printf("shmdt srror");
-			}*/
-			
-		pid=fork();
-		if(pid==0){
-			
-			//shm_ptr=(int*) shmat(shm_id,NULL,0);
-			if((int) shm_ptr!=-1){
-			printf("\nSHARED MEMORY IS ATTACHED TO \t%d\n",shm_ptr);
-			read_data=*shm_ptr;
-			printf("data from shared memory \t %d",*shm_ptr);
-		}//if ptr
-		
-			/*if(ret_val==0){
-				printf("\n shared memory is sucessfully detached\n");
-			}
-			else{
-				printf("shmdt srror");
-			}*/
-		
-		}
-		ret_val =shmdt((void *)shm_ptr);
-		if(ret_val==0){
-				printf("\n shared memory is successfully detached\n");
-			}
-			else{
-				printf("shmdt srror");
-			}
-	}
-return 0;
+	
+	printf("\nEnter the string\n");
+	fd1=open(myfifo1,O_WRONLY);
+	while((str=getchar())!='#')
+	buff[c++]=str;
+	buff[c]='\0';
+	
+	write(fd1,buff,sizeof(buff));
+	close(fd1);
+	
+	fd2=open(myfifo2,O_RDONLY);
+	read(fd2,&buff,Max_Buff);
+	
+	printf("\nContents of files:\n %s",buff);
+	close(fd2);
+	unlink(myfifo2);
+	
+	return 0;
 }
 
 
+
+/*Second code - file name 'secondp'*/
+
+#include<stdio.h>
+#include<unistd.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#define MAX_BUF 1024
+int main()
+{
+	int words=0,lines=0,chars=0;
+	FILE *fp;
+	char buf[MAX_BUF];
+	int fd,fd1,i=0;
+	
+	char *myfifo1="myfifo1";
+	char *myfifo2="myfifo2";
+	mkfifo(myfifo2,0777);
+	
+	fd=open(myfifo1,O_RDONLY);
+	read(fd,buf,MAX_BUF);
+	
+	printf("\nmessage received :%s",buf);
+	
+	while(buf[i]!='\0')
+	{
+		if(buf[i]==' '||buf[i]=='\n')
+		{
+			words++;
+			
+		}
+		else
+			chars++;
+			
+			
+		if(buf[i]=='\n')
+			lines++;
+			
+		i++;		
+	}
+	words++;
+	lines++;
+	printf("\nNo. of lines are :%d\n",lines);
+	printf("\nNo. of words are :%d\n",words);
+	printf("\nNo. of chars are :%d\n",chars);
+	
+	fp=fopen("a.txt","w+");
+	fprintf(fp,"\nNo. of lines are :%d\n",lines);
+	fprintf(fp,"\nNo. of words are :%d\n",words);
+	fprintf(fp,"\nNo. of chars are :%d\n",chars);
+	
+	fclose(fp);
+	close(fd);
+	unlink(myfifo1);
+	
+	fd1=open(myfifo2,O_WRONLY);
+	system("cat a.txt>myfifo2");
+	close(fd1);
+	return 0;
+	
+}
+
 /*
-OUTPUT
-ubuntu@ubuntu-VirtualBox:~/Desktop/OSL_Assignment/Assignment_7/Shared_Memory$ ./a.out
-Shared memory is created
-shared memory id  1
+OUTPUT:
 
-SHARED MEMORY IS ATTACHED TO 	603217920
+First Terminal:
+aditya@aditya:~$ cd Desktop
+aditya@aditya:~/Desktop$ cc firstp.c -o firstp
+aditya@aditya:~/Desktop$ cc secondp.c -o secondp
+aditya@aditya:~/Desktop$ ./firstp
 
-ENTER THE DATA
-190
+Enter the string
+Good Morning
+Good Afternoon
+Good Night#
 
- shared memory is successfully detached
+Contents of files:
+ 
+No. of lines are :3
 
-SHARED MEMORY IS ATTACHED TO 	603217920
-data from shared memory 	 190
- shared memory is successfully detached
+No. of words are :6
+
+No. of chars are :33
+
+Second Terminal:
+aditya@aditya:~/Desktop$ ./secondp
+
+message received :Good Morning
+Good Afternoon
+Good Night
+No. of lines are :3
+
+No. of words are :6
+
+No. of chars are :33
+
 
 */
+
