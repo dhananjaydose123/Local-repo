@@ -1,0 +1,74 @@
+#include <iostream>
+using namespace std;
+
+int count = 0;
+
+bool isSafe(char board[][10], int row, int col, int n) {
+    // Check vertical up
+    for (int i = row - 1; i >= 0; i--) {
+        if (board[i][col] == 'Q') {
+            return false;
+        }
+    }
+
+    // Check diagonal left
+    for (int i = row - 1, j = col - 1; i >= 0 && j >= 0; i--, j--) {
+        if (board[i][j] == 'Q') {
+            return false;
+        }
+    }
+
+    // Check diagonal right
+    for (int i = row - 1, j = col + 1; i >= 0 && j < n; i--, j++) {
+        if (board[i][j] == 'Q') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void printBoard(char board[][10], int n) {
+    cout << "--------------- Chess Board --------------\n";
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cout << board[i][j] << " ";
+        }
+        cout << endl;
+    }
+}
+
+void nQueen(char board[][10], int row, int n) {
+    // Base case: If all queens are placed
+    if (row == n) {
+        printBoard(board, n);
+        count++;
+        return;
+    }
+
+    // Try placing queen in all columns one by one
+    for (int j = 0; j < n; j++) {
+        if (isSafe(board, row, j, n)) {
+            board[row][j] = 'Q';
+            nQueen(board, row + 1, n); // Recursion call
+            board[row][j] = '-'; // Backtracking
+        }
+    }
+}
+
+int main() {
+    int n = 4;
+    char board[10][10]; // Assume max size as 10x10 for simplicity
+
+    // Initialize board with '-'
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            board[i][j] = '-';
+        }
+    }
+
+    nQueen(board, 0, n);
+    cout << "Total ways of placing queens are = " << count << endl;
+
+    return 0;
+}
